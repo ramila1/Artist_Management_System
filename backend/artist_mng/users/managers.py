@@ -19,9 +19,3 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("Superuser must have is_superuser=True.")
         return self.create_user(email,password,**extra_fields)
 
-
-    # def is_admin(self, user):
-    #     return user.is_staff and user.is_superuser and user.is_admin
-
-    # def is_artist(self, user):
-    #     return user.is_artist

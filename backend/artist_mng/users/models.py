@@ -1,7 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-from .managers import CustomUserManager
 from django.utils import timezone
+from .managers import CustomUserManager
+
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
@@ -20,7 +21,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     deleted_at = models.DateTimeField(blank=True, null=True)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'date_of_birth', 'gender', 'address', 'country']
 
     objects = CustomUserManager()
 
@@ -32,11 +33,19 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         self.deleted_at = timezone.now()
         self.save()
 
+
     def restore(self):
         self.is_deleted = False
         self.deleted_at = None
         self.save()
 
+
     def hard_delete(self):
         super().delete()
 
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        # Example custom validation
+        if self.date_of_birth and self.date_of_birth > timezone.now().date():
+            raise ValidationError('Date of birth cannot be in the future.')

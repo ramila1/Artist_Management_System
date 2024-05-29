@@ -6,11 +6,21 @@ import ArtistDash from '../components/Artist_Dash.vue';
 import AdminSongs from '../components/Songs.vue';
 import ArtistSongs from '../components/Songs.vue';
 import ArtistAccount from '../components/Artist_Account.vue';
-import SongAdded from '../components/Artist_song_add.vue';
+import SongAdded from '../components/Admin_song_add.vue';
 import AdminAccount from '../components/Admin_Account.vue';
 import DisplayArtist from '../components/Display_Artist.vue';
 import ManageArtist from '../components/Manage_Artists.vue';
 import EditArtist from '../components/Edit_Artist.vue';
+import MoreSongs from '../components/More_Songs.vue';
+import AllSongs from '../components/AllSongsDetail.vue';
+import Navigation from '../components/NavigationBar.vue';
+import SideBar from '../components/SideBar.vue';
+import NavigationArtist from '../components/NavigationArtist.vue';
+import SideBarArtist from '../components/SideBarArtist.vue';
+import NavLogin from '../components/NavigationLogin.vue';
+import CreateArtistSong from '../components/ArtistSongCreate.vue';
+import SongPop from '../components/SongPop.vue'
+
 const routes= [
     {
       path:'/signup',
@@ -71,13 +81,81 @@ const routes= [
     path: '/edit_artist',
       name:'EditArtist',
       component:EditArtist
+     },
+     {
+      path: '/artist/:artistId/songs',
+      name: 'MoreSongs',
+      component: MoreSongs,
+      props: true,
+     },
+
+     {
+      path: '/all_songs_detail',
+      name: 'AllSongs',
+      component: AllSongs,
+   
+     },
+     {
+      path:'/nav',
+      name:'Navigation',
+      component:Navigation
+     },
+     {
+      path:'/sidebar',
+      name:'SideBar',
+      component:SideBar
+     },
+     {
+      path:'/navigation',
+      name:'NavigationArtist',
+      component:NavigationArtist
+     },
+     {
+      path:'/sidebar',
+      name:'SideBarArtist',
+      component:SideBarArtist
+     },
+     {
+      path:'/navlogin',
+      name:'NavLogin',
+      component:NavLogin
+     },
+     {
+      path:'/createartistsong',
+      name:'CreateArtistSong',
+      component:CreateArtistSong
+     },
+     {
+      path:'/songpop',
+      name:'SongPop',
+      component:SongPop
      }
+
+   
 ]
+
 const router = createRouter({
-    history: createWebHistory(),
-    routes
-  });
+  history: createWebHistory(),
+  routes
+});
+
+
+function isAuthenticated() {
+  return !!localStorage.getItem('access_token'); 
+}
+
+
+router.beforeEach((to, from, next) => {
+
+  const publicPages = ['LoginForm', 'SignUp'];
   
+ 
+  if (publicPages.includes(to.name) || isAuthenticated()) {
+    next();
+  } else {
+    next({ name: 'LoginForm' });
+  }
+});
 export default router
 
 

@@ -1,57 +1,224 @@
 <template>
-    <div class="min-h-screen flex">
-      <div class="w-1/4 bg-gray-800 text-white p-6">
-        <nav>
-          <ul class="space-y-4">
-            <li>
-              <router-link to="/home" class="block text-xl font-bold">Home</router-link>
-            </li>
-            <li>
-              <router-link to="/artist_account" class="block text-xl font-bold">My Account</router-link>
-            </li>
-            <li>
-              <router-link to="/songs" class="block text-xl font-bold">My Songs</router-link>
-            </li>
-            <li>
-              <router-link to="/song_added" class="block text-xl font-bold">Add new Songs</router-link>
-            </li>
-            <li>
-              <router-link to="/logout" class="block text-xl font-bold">LogOut</router-link>
-            </li>
-          </ul>
-        </nav>
-      </div>
-  
- 
-      <div class="w-3/4 p-6 bg-blue-100">
-        <h1 class="text-3xl font-bold mb-6">My Songs</h1>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          <div v-for="song in songs" :key="song.id" class="bg-white p-4 rounded shadow">
-            <h2 class="text-xl font-bold mb-2">{{ song.title }}</h2>
-            <p class="text-gray-700">{{ song.artist }}</p>
-           
-          </div>
+  <div class="min-h-screen flex flex-col">
+    <NavigationArtist :artist="artist" :dropdownVisible="dropdownVisible" @toggle-dropdown="toggleDropdown" />
+    <div class="flex flex-1 w-full">
+      <SideBarArtist />
+      <div class="flex-1 p-6 bg-blue-100 flex items-center justify-center">
+        <div class="max-w-md w-full p-8 bg-white shadow-lg rounded-lg">
+          <h1 class="text-3xl font-bold text-center mb-8">Create New Song</h1>
+
+          <form @submit.prevent="createSong" class="space-y-4">
+            <div>
+              <label for="title" class="font-semibold text-gray-800 mb-1">Title</label>
+              <input
+                type="text"
+                v-model="newSong.title"
+                :class="{'border-red-500': errors.title}"
+                required
+                placeholder="Enter song title"
+                class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+              />
+              <span v-if="errors.title" class="text-red-500 text-sm">{{ errors.title }}</span>
+            </div>
+            <div>
+              <label for="release_date" class="font-semibold text-gray-800 mb-1">Release Date</label>
+              <input
+                type="date"
+                v-model="newSong.release_date"
+                :class="{'border-red-500': errors.release_date}"
+                required
+                class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+              />
+              <span v-if="errors.release_date" class="text-red-500 text-sm">{{ errors.release_date }}</span>
+            </div>
+            <div>
+              <label for="duration" class="font-semibold text-gray-800 mb-1">Duration</label>
+              <input
+                type="text"
+                v-model="newSong.duration"
+                :class="{'border-red-500': errors.duration}"
+                required
+                placeholder="Enter duration"
+                class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+              />
+              <span v-if="errors.duration" class="text-red-500 text-sm">{{ errors.duration }}</span>
+            </div>
+            <div>
+              <label for="language" class="font-semibold text-gray-800 mb-1">Language</label>
+              <input
+                type="text"
+                v-model="newSong.language"
+                :class="{'border-red-500': errors.language}"
+                required
+                placeholder="Enter language"
+                class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+              />
+              <span v-if="errors.language" class="text-red-500 text-sm">{{ errors.language }}</span>
+            </div>
+            <div>
+              <label for="lyrics" class="font-semibold text-gray-800 mb-1">Lyrics</label>
+              <textarea
+                v-model="newSong.lyrics"
+                :class="{'border-red-500': errors.lyrics}"
+                placeholder="Enter lyrics"
+                class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+              ></textarea>
+              <span v-if="errors.lyrics" class="text-red-500 text-sm">{{ errors.lyrics }}</span>
+            </div>
+            <button
+              type="submit"
+              :disabled="loading"
+              class="w-full px-6 py-3 bg-sky-500 text-white rounded hover:bg-sky-600 focus:outline-none focus:bg-sky-600"
+            >
+              <span v-if="loading" class="mr-2">Creating...</span>
+              <span v-else>Create Song</span>
+            </button>
+          </form>
         </div>
       </div>
     </div>
-  </template>
-  
-  <script>
-  export default {
-    data() {
-      return {
-        songs: [
-          { id: 1, title: 'Song 1', artist: 'Artist 1' },
-          { id: 2, title: 'Song 2', artist: 'Artist 2' },
-          { id: 3, title: 'Song 3', artist: 'Artist 3' },
-          
-        ]
-      };
-    }
-  };
-  </script>
-  
-  <style scoped>
+  </div>
+</template>
 
-  </style>
+<script>
+import axios from 'axios';
+import { toast } from 'vue3-toastify';
+import NavigationArtist from './NavigationArtist.vue';
+import SideBarArtist from './SideBarArtist.vue';
+
+export default {
+  components: {
+    NavigationArtist,
+    SideBarArtist,
+  },
+  data() {
+    return {
+      loading: false,
+      artist: null,
+      dropdownVisible: false,
+      errors: {
+        title: null,
+        release_date: null,
+        duration: null,
+        language: null,
+        lyrics: null,
+      },
+      newSong: {
+        title: '',
+        release_date: '',
+        duration: '',
+        language: '',
+        lyrics: '',
+      },
+    };
+  },
+  created() {
+    this.fetchArtistDetails();
+
+  },
+
   
+  methods: {
+    async fetchArtistDetails() {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/artists/me/', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('access_token')}`
+          }
+        });
+        this.artist = response.data;
+      } catch (error) {
+        console.error('Error fetching artist details:', error);
+      }
+    },
+    toggleDropdown() {
+      this.dropdownVisible = !this.dropdownVisible;
+    },
+    async createSong() {
+      if (!this.validateForm()) {
+        return;
+      }
+
+      const token = localStorage.getItem('access_token');
+      this.loading = true;
+
+      try {
+        const response = await axios.post('http://127.0.0.1:8000/api/song/create/', this.newSong, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        this.newSong = {
+          title: '',
+          release_date: '',
+          duration: '',
+          language: '',
+          lyrics: '',
+        };
+
+        toast.success('Song created successfully!');
+        this.$router.push({ name: 'ArtistSongs' });
+      } catch (error) {
+        if (error.response.status === 400) {
+          // Handle validation errors
+          const errors = error.response.data;
+          if (errors) {
+            this.errors.title = errors.title ? errors.title[0] : null;
+            this.errors.release_date = errors.release_date ? errors.release_date[0] : null;
+            this.errors.duration = errors.duration ? errors.duration[0] : null;
+            this.errors.language = errors.language ? errors.language[0] : null;
+            this.errors.lyrics = errors.lyrics ? errors.lyrics[0] : null;
+          }
+        } else {
+          console.error('Error creating song:', error);
+          toast.error('Failed to create song. Please try again.');
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
+    validateForm() {
+      this.errors.title = null;
+      this.errors.release_date = null;
+      this.errors.duration = null;
+      this.errors.language = null;
+      this.errors.lyrics = null;
+
+      let isValid = true;
+
+      if (!this.newSong.title) {
+        this.errors.title = 'Title is required';
+        isValid = false;
+      }
+
+      if (!this.newSong.release_date) {
+        this.errors.release_date = 'Release date is required';
+        isValid = false;
+      }
+
+      if (!this.newSong.duration) {
+        this.errors.duration = 'Duration is required';
+        isValid = false;
+      }
+
+      if (!this.newSong.language) {
+        this.errors.language = 'Language is required';
+        isValid = false;
+      }
+
+      if (!this.newSong.lyrics) {
+        this.errors.lyrics = 'Lyrics are required';
+        isValid = false;
+      }
+
+      return isValid;
+    },
+  },
+};
+</script>
+
+<style>
+
+</style>

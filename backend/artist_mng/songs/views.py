@@ -3,33 +3,30 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Song
 from .serializers import SongSerializer
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from users.permission import IsAdmin, IsArtist, IsAdminOrArtist
+from rest_framework.permissions import IsAuthenticated
+from users.permission import IsAdminOrArtist
+from django.shortcuts import get_object_or_404
 
 class CreateSongAPIView(APIView):
-    permission_classes = [IsAdminOrArtist]  
+    permission_classes = [IsAuthenticated, IsAdminOrArtist]
 
     def get(self, request, pk):
-        try:
-            song = Song.objects.get(pk=pk)
-            serializer = SongSerializer(song)
-            return Response(serializer.data)
-        except Song.DoesNotExist:
-            return Response({'error': 'Song not found'}, status=status.HTTP_404_NOT_FOUND)
+        songs = Song.objects.filter(artist__id=pk)
+        serializer = SongSerializer(songs, many=True)
+        return Response(serializer.data)
 
     def post(self, request):
-        serializer = SongSerializer(data=request.data)
+        data = request.data.copy()  
+        data['artist'] = request.user.id 
+
+        serializer = SongSerializer(data=data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, pk):
-        try:
-            song = Song.objects.get(pk=pk)
-        except Song.DoesNotExist:
-            return Response({'error': 'Song not found'}, status=status.HTTP_404_NOT_FOUND)
-
+        song = get_object_or_404(Song, pk=pk)
         serializer = SongSerializer(song, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -37,22 +34,15 @@ class CreateSongAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk):
-        try:
-            song = Song.objects.get(pk=pk)
-        except Song.DoesNotExist:
-            return Response({'error': 'Song not found'}, status=status.HTTP_404_NOT_FOUND)
-
+        song = get_object_or_404(Song, pk=pk)
         serializer = SongSerializer(song, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, pk, format=None):
-        try:
-            song = Song.objects.get(pk=pk)
-        except Song.DoesNotExist:
-            return Response({'error': 'Song not found'}, status=status.HTTP_404_NOT_FOUND)
+    def delete(self, request, pk):
+        song = get_object_or_404(Song, pk=pk)
 
         if song.is_deleted:
             try:
@@ -65,20 +55,18 @@ class CreateSongAPIView(APIView):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 class ListSongsAPIView(APIView):
-    permission_classes = [IsAdminOrArtist]  
+    permission_classes = [IsAuthenticated, IsAdminOrArtist]
 
-    def get(self, request, format=None):
-        songs = Song.objects.all()
+    def get(self, request):
+        songs = Song.objects.select_related('artist').all()
         serializer = SongSerializer(songs, many=True)
         return Response(serializer.data)
 
-class ListSongsByUserAPIView(APIView):
-    permission_classes = [IsAuthenticated] 
 
-    def get(self, request, user_id, format=None):
-        try:
-            songs = Song.objects.filter(artist_id=user_id, is_deleted=False)
-            serializer = SongSerializer(songs, many=True)
-            return Response(serializer.data)
-        except Song.DoesNotExist:
-            return Response({'error': 'Songs not found for this user'}, status=status.HTTP_404_NOT_FOUND)
+class ListSongsByUserAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        songs = Song.objects.filter(artist_id=user_id, is_deleted=False)
+        serializer = SongSerializer(songs, many=True)
+        return Response(serializer.data)

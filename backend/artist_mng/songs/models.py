@@ -1,6 +1,7 @@
 from django.db import models
 from users.models import CustomUser
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 class Song(models.Model):
     title = models.CharField(max_length=255)
@@ -28,3 +29,10 @@ class Song(models.Model):
 
     def hard_delete(self):
         super().delete()
+
+    def clean(self):
+     
+        if self.release_date and self.release_date > timezone.now().date():
+            raise ValidationError('Release date cannot be in the future.')
+
+        super().clean()
